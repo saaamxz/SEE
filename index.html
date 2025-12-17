@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Project Management App</title>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4361ee;
+            --success: #2ec4b6;
+            --danger: #ef233c;
+            --warning: #ff9f1c;
+            --bg: #f0f2f5;
+            --card-bg: #ffffff;
+        }
+
+        /* جعل الصفحة بالكامل في المنتصف عمودياً وأفقياً */
+        body, html {
+            height: 100%;
+            margin: 0;
+            font-family: 'Tajawal', sans-serif;
+            background-color: var(--bg);
+            display: flex;
+            justify-content: center;
+            align-items: center; /* سنتره في منتصف الطول */
+        }
+
+        .container { 
+            width: 100%; 
+            max-width: 550px; 
+            padding: 20px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 24px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center; /* سنتره العناصر داخل الكارد */
+        }
+
+        .header-flex { 
+            width: 100%;
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 25px; 
+        }
+        
+        h2 { margin: 0; color: var(--primary); font-size: 24px; }
+
+        .btn-logout { 
+            background: #fff; 
+            color: var(--danger); 
+            border: 1px solid #f8d7da; 
+            padding: 8px 15px; 
+            border-radius: 10px; 
+            cursor: pointer; 
+            font-weight: bold;
+            transition: 0.3s;
+        }
+        .btn-logout:hover { background: var(--danger); color: white; }
+
+        .input-group { 
+            width: 100%;
+            display: flex; 
+            gap: 10px; 
+            margin-bottom: 25px; 
+        }
+        
+        input { 
+            flex: 1; 
+            padding: 14px; 
+            border: 2px solid #edf2f7; 
+            border-radius: 12px; 
+            outline: none; 
+            font-family: 'Tajawal'; 
+        }
+        
+        input:focus { border-color: var(--primary); }
+
+        .add-btn { 
+            background: var(--primary); 
+            color: white; 
+            border: none; 
+            padding: 12px 25px; 
+            border-radius: 12px; 
+            cursor: pointer; 
+            font-weight: bold;
+            transition: 0.3s;
+        }
+        .add-btn:hover { background: #3351d1; transform: translateY(-2px); }
+
+        #tasksContainer { width: 100%; }
+
+        .task-item {
+            background: #fff;
+            border: 1px solid #f1f3f9;
+            padding: 18px;
+            border-radius: 15px;
+            margin-bottom: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+            transition: 0.3s;
+        }
+
+        .task-item:hover { transform: translateY(-3px); box-shadow: 0 8px 15px rgba(0,0,0,0.05); }
+
+        .task-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .task-title { font-weight: 700; font-size: 17px; color: #2d3748; }
+        .task-title.completed { text-decoration: line-through; color: #a0aec0; }
+
+        .actions { display: flex; gap: 8px; justify-content: flex-end; }
+        .btn-sm { padding: 8px 14px; border-radius: 10px; border: none; font-size: 13px; cursor: pointer; font-weight: bold; color: white; font-family: 'Tajawal'; }
+        
+        .btn-edit { background: var(--warning); }
+        .btn-delete { background: var(--danger); }
+        .btn-complete { background: var(--success); }
+
+        .status-tag { font-size: 11px; padding: 5px 12px; border-radius: 20px; color: white; font-weight: bold; text-transform: uppercase; }
+        .tag-pending { background: #cbd5e0; }
+        .tag-done { background: var(--success); }
+
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="card" id="loginPage">
+        <h2>System Login</h2>
+        <p style="color: #718096; margin-bottom: 20px;">Welcome back! Please login.</p>
+        <input type="email" id="emailInput" style="width:100%; margin-bottom:15px;" placeholder="Email Address">
+        <button class="add-btn" style="width:100%" onclick="handleLogin()">Login</button>
+    </div>
+
+    <div class="card hidden" id="dashboardPage">
+        <div class="header-flex">
+            <h2>Dashboard </h2>
+            <button class="btn-logout" onclick="handleLogout()">Logout</button>
+        </div>
+        
+        <div class="input-group">
+            <input type="text" id="newTaskInput" placeholder="Write a new task...">
+            <button class="add-btn" onclick="addNewTask()">Add</button>
+        </div>
+
+        <div id="tasksContainer">
+            </div>
+    </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyBd9Gyw7EFE6BIYmOgpYMggt7EmlMYbjmU",
+        authDomain: "simple-c3a66.firebaseapp.com",
+        projectId: "simple-c3a66",
+        storageBucket: "simple-c3a66.firebasestorage.app",
+        messagingSenderId: "324629368316",
+        appId: "1:324629368316:web:6e084c5a9be773789d3679"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    function handleLogin() {
+        const email = document.getElementById('emailInput').value;
+        if(!email) return alert("Enter email");
+        document.getElementById('loginPage').classList.add('hidden');
+        document.getElementById('dashboardPage').classList.remove('hidden');
+        syncData();
+    }
+
+    function handleLogout() {
+        document.getElementById('dashboardPage').classList.add('hidden');
+        document.getElementById('loginPage').classList.remove('hidden');
+        document.getElementById('emailInput').value = "";
+    }
+
+    async function addNewTask() {
+        const title = document.getElementById('newTaskInput').value;
+        if(!title) return;
+        await db.collection("tasks").add({
+            title: title,
+            status: 'Pending',
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        document.getElementById('newTaskInput').value = "";
+    }
+
+    async function deleteTask(id) {
+        if(confirm("Delete this task?")) await db.collection("tasks").doc(id).delete();
+    }
+
+    async function editTask(id, oldTitle) {
+        const newTitle = prompt("Edit Task:", oldTitle);
+        if(newTitle) await db.collection("tasks").doc(id).update({ title: newTitle });
+    }
+
+    async function toggleComplete(id, status) {
+        const next = (status === 'Done') ? 'Pending' : 'Done';
+        await db.collection("tasks").doc(id).update({ status: next });
+    }
+
+    function syncData() {
+        db.collection("tasks").orderBy("createdAt", "desc").onSnapshot(snapshot => {
+            const container = document.getElementById('tasksContainer');
+            container.innerHTML = "";
+            snapshot.forEach(doc => {
+                const task = doc.data();
+                const isDone = task.status === 'Done';
+                container.innerHTML += `
+                    <div class="task-item">
+                        <div class="task-header">
+                            <span class="task-title ${isDone ? 'completed' : ''}">${task.title}</span>
+                            <span class="status-tag ${isDone ? 'tag-done' : 'tag-pending'}">${task.status}</span>
+                        </div>
+                        <div class="actions">
+                            <button class="btn-sm btn-complete" onclick="toggleComplete('${doc.id}', '${task.status}')">${isDone ? 'Undo' : 'Done'}</button>
+                            <button class="btn-sm btn-edit" onclick="editTask('${doc.id}', '${task.title}')">Edit</button>
+                            <button class="btn-sm btn-delete" onclick="deleteTask('${doc.id}')">Delete</button>
+                        </div>
+                    </div>
+                `;
+            });
+        });
+    }
+</script>
+</body>
+</html>
