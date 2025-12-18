@@ -15,7 +15,7 @@
             --card-bg: #ffffff;
         }
 
-        /* جعل الصفحة بالكامل في المنتصف عمودياً وأفقياً */
+        /* Center everything in the screen */
         body, html {
             height: 100%;
             margin: 0;
@@ -23,7 +23,7 @@
             background-color: var(--bg);
             display: flex;
             justify-content: center;
-            align-items: center; /* سنتره في منتصف الطول */
+            align-items: center;
         }
 
         .container { 
@@ -39,11 +39,9 @@
             box-shadow: 0 15px 35px rgba(0,0,0,0.1);
             display: flex;
             flex-direction: column;
-            align-items: center; /* سنتره العناصر داخل الكارد */
         }
 
         .header-flex { 
-            width: 100%;
             display: flex; 
             justify-content: space-between; 
             align-items: center; 
@@ -65,7 +63,6 @@
         .btn-logout:hover { background: var(--danger); color: white; }
 
         .input-group { 
-            width: 100%;
             display: flex; 
             gap: 10px; 
             margin-bottom: 25px; 
@@ -90,11 +87,7 @@
             border-radius: 12px; 
             cursor: pointer; 
             font-weight: bold;
-            transition: 0.3s;
         }
-        .add-btn:hover { background: #3351d1; transform: translateY(-2px); }
-
-        #tasksContainer { width: 100%; }
 
         .task-item {
             background: #fff;
@@ -105,8 +98,6 @@
             box-shadow: 0 4px 6px rgba(0,0,0,0.02);
             transition: 0.3s;
         }
-
-        .task-item:hover { transform: translateY(-3px); box-shadow: 0 8px 15px rgba(0,0,0,0.05); }
 
         .task-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
         .task-title { font-weight: 700; font-size: 17px; color: #2d3748; }
@@ -119,7 +110,7 @@
         .btn-delete { background: var(--danger); }
         .btn-complete { background: var(--success); }
 
-        .status-tag { font-size: 11px; padding: 5px 12px; border-radius: 20px; color: white; font-weight: bold; text-transform: uppercase; }
+        .status-tag { font-size: 11px; padding: 5px 12px; border-radius: 20px; color: white; font-weight: bold; }
         .tag-pending { background: #cbd5e0; }
         .tag-done { background: var(--success); }
 
@@ -131,19 +122,19 @@
 <div class="container">
     <div class="card" id="loginPage">
         <h2>System Login</h2>
-        <p style="color: #718096; margin-bottom: 20px;">Welcome back! Please login.</p>
-        <input type="email" id="emailInput" style="width:100%; margin-bottom:15px;" placeholder="Email Address">
-        <button class="add-btn" style="width:100%" onclick="handleLogin()">Login</button>
+        <p style="color: #718096; text-align: center; margin-bottom: 20px;">Enter any email to access the dashboard</p>
+        <input type="email" id="emailInput" style="margin-bottom:15px;" placeholder="Email (e.g. user@test.com)">
+        <button class="add-btn" onclick="handleLogin()">Login</button>
     </div>
 
     <div class="card hidden" id="dashboardPage">
         <div class="header-flex">
-            <h2>Dashboard </h2>
+            <h2>Dashboard</h2>
             <button class="btn-logout" onclick="handleLogout()">Logout</button>
         </div>
         
         <div class="input-group">
-            <input type="text" id="newTaskInput" placeholder="Write a new task...">
+            <input type="text" id="newTaskInput" placeholder="Add a new project task...">
             <button class="add-btn" onclick="addNewTask()">Add</button>
         </div>
 
@@ -168,12 +159,18 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
+    // Login logic: Accepts any valid email format
     function handleLogin() {
-        const email = document.getElementById('emailInput').value;
-        if(!email) return alert("Enter email");
-        document.getElementById('loginPage').classList.add('hidden');
-        document.getElementById('dashboardPage').classList.remove('hidden');
-        syncData();
+        const emailValue = document.getElementById('emailInput').value;
+        const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+        if (emailPattern.test(emailValue)) {
+            document.getElementById('loginPage').classList.add('hidden');
+            document.getElementById('dashboardPage').classList.remove('hidden');
+            syncData();
+        } else {
+            alert("Please enter a valid email format (example@test.com)");
+        }
     }
 
     function handleLogout() {
@@ -182,6 +179,7 @@
         document.getElementById('emailInput').value = "";
     }
 
+    // CREATE
     async function addNewTask() {
         const title = document.getElementById('newTaskInput').value;
         if(!title) return;
@@ -193,20 +191,28 @@
         document.getElementById('newTaskInput').value = "";
     }
 
+    // DELETE
     async function deleteTask(id) {
-        if(confirm("Delete this task?")) await db.collection("tasks").doc(id).delete();
+        if(confirm("Are you sure you want to delete this task?")) {
+            await db.collection("tasks").doc(id).delete();
+        }
     }
 
+    // UPDATE: Title
     async function editTask(id, oldTitle) {
-        const newTitle = prompt("Edit Task:", oldTitle);
-        if(newTitle) await db.collection("tasks").doc(id).update({ title: newTitle });
+        const newTitle = prompt("Update Task Name:", oldTitle);
+        if(newTitle && newTitle !== oldTitle) {
+            await db.collection("tasks").doc(id).update({ title: newTitle });
+        }
     }
 
+    // UPDATE: Toggle Status
     async function toggleComplete(id, status) {
-        const next = (status === 'Done') ? 'Pending' : 'Done';
-        await db.collection("tasks").doc(id).update({ status: next });
+        const nextStatus = (status === 'Done') ? 'Pending' : 'Done';
+        await db.collection("tasks").doc(id).update({ status: nextStatus });
     }
 
+    // READ: Listen to cloud changes
     function syncData() {
         db.collection("tasks").orderBy("createdAt", "desc").onSnapshot(snapshot => {
             const container = document.getElementById('tasksContainer');
@@ -221,7 +227,9 @@
                             <span class="status-tag ${isDone ? 'tag-done' : 'tag-pending'}">${task.status}</span>
                         </div>
                         <div class="actions">
-                            <button class="btn-sm btn-complete" onclick="toggleComplete('${doc.id}', '${task.status}')">${isDone ? 'Undo' : 'Done'}</button>
+                            <button class="btn-sm btn-complete" onclick="toggleComplete('${doc.id}', '${task.status}')">
+                                ${isDone ? 'Undo' : 'Complete'}
+                            </button>
                             <button class="btn-sm btn-edit" onclick="editTask('${doc.id}', '${task.title}')">Edit</button>
                             <button class="btn-sm btn-delete" onclick="deleteTask('${doc.id}')">Delete</button>
                         </div>
